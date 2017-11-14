@@ -278,8 +278,18 @@
             {
                 if (!string.IsNullOrEmpty(args.Result) && args.Result != "undefined")
                 {
-                    string[] parts = args.Result.Split('^');
-                    string sourceDevice = StringUtil.GetString(args.Parameters["deviceid"]);
+                    //string[] parts = args.Result.Split('^');
+                    //string sourceDevice = StringUtil.GetString(args.Parameters["deviceid"]);
+
+                    #region Added Code
+
+                    char[] separator = new char[] { '^' };
+                    string[] parts = args.Result.Split(separator);
+                    string[] values = new string[] { args.Parameters["deviceid"] };
+                    string sourceDevice = StringUtil.GetString(values);
+
+                    #endregion
+
                     var targetDevices = new ListString(parts[0]);
                     string targetItemId = parts[1];
                     XmlDocument doc = this.GetDoc();
@@ -296,8 +306,15 @@
                     {
                         if (deviceNode != null)
                         {
-                            Item targetItem = Client.GetItemNotNull(targetItemId);
-                            CopyDevice(deviceNode, targetDevices, targetItem);
+                            //Item targetItem = Client.GetItemNotNull(targetItemId);
+                            //CopyDevice(deviceNode, targetDevices, targetItem);
+
+                            #region Added Code
+
+                            Sitecore.Data.Items.Item targetItem = Client.GetItemNotNull(targetItemId, Language.Parse(WebUtil.GetQueryString("la")), Sitecore.Data.Version.Parse(WebUtil.GetQueryString("vs")));
+                            this.CopyDevice(deviceNode, targetDevices, targetItem);
+
+                            #endregion
                         }
                     }
 
@@ -307,11 +324,21 @@
             else
             {
                 XmlDocument doc = this.GetDoc();
-                WebUtil.SetSessionValue("SC_DEVICEEDITOR", doc.OuterXml);
-                var url = new UrlString(UIUtil.GetUri("control:CopyDeviceTo"));
-                url["de"] = StringUtil.GetString(args.Parameters["deviceid"]);
-                url["fo"] = WebUtil.GetQueryString("id");
-                SheerResponse.ShowModalDialog(url.ToString(), "1200px", "700px", string.Empty, true);
+                //WebUtil.SetSessionValue("SC_DEVICEEDITOR", doc.OuterXml);
+                //var url = new UrlString(UIUtil.GetUri("control:CopyDeviceTo"));
+                //url["de"] = StringUtil.GetString(args.Parameters["deviceid"]);
+                //url["fo"] = WebUtil.GetQueryString("id");
+                //SheerResponse.ShowModalDialog(url.ToString(), "1200px", "700px", string.Empty, true);
+
+                #region Added Code
+
+                UrlString str4 = new UrlString(UIUtil.GetUri("control:CopyDeviceTo"));
+                string[] textArray2 = new string[] { args.Parameters["deviceid"] };
+                str4["de"] = StringUtil.GetString(textArray2);
+                SheerResponse.ShowModalDialog(str4.ToString(), "1200px", "700px", string.Empty, true);
+               
+                #endregion
+
                 args.WaitForPostBack();
             }
         }

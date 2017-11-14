@@ -1,9 +1,6 @@
 ﻿namespace Sitecore.Support.Shell.Applications.Layouts.DeviceEditor
 {
-    using System;
-    using System.IO;
-    using System.Web;
-    using System.Web.UI;
+    using Sitecore;
     using Sitecore.Data;
     using Sitecore.Data.Items;
     using Sitecore.Diagnostics;
@@ -14,191 +11,109 @@
     using Sitecore.Web.UI.Pages;
     using Sitecore.Web.UI.Sheer;
     using Sitecore.Web.UI.WebControls;
+    using System;
+    using System.IO;
+    using System.Web;
+    using System.Web.UI;
 
-
-    /// <summary>
-    /// Represents a Copy To Form.
-    /// </summary>
     public class CopyDeviceToForm : DialogForm
     {
-        #region Fields
-
-        /// <summary></summary>
-        protected DataContext DataContext;
-
-        /// <summary></summary>
-        protected TreeviewEx Treeview;
-        /// <summary></summary>
+        protected Sitecore.Web.UI.HtmlControls.DataContext DataContext;
         protected Border Devices;
+        protected TreeviewEx Treeview;
 
-        #endregion
-
-        #region Public methods
-
-        /// <summary>
-        /// Handles the message.
-        /// </summary>
-        /// <param name="message">The message.</param>
-        public override void HandleMessage(Message message)
+        private Item GetCurrentItem(Message message)
         {
             Assert.ArgumentNotNull(message, "message");
-
-            Dispatcher.Dispatch(message, GetCurrentItem(message));
-
-            base.HandleMessage(message);
-        }
-
-        #endregion
-
-        #region Protected methods
-
-        /// <summary>
-        /// Raises the load event.
-        /// </summary>
-        /// <param name="e">The <see cref="System.EventArgs"/> instance containing the event data.</param>
-        /// <remarks>
-        /// This method notifies the server control that it should perform actions common to each HTTP
-        /// request for the page it is associated with, such as setting up a database query. At this
-        /// stage in the page lifecycle, server controls in the hierarchy are created and initialized,
-        /// view state is restored, and form controls reflect client-side data. Use the IsPostBack
-        /// property to determine whether the page is being loaded in response to a client postback,
-        /// or if it is being loaded and accessed for the first time.
-        /// </remarks>
-        protected override void OnLoad(EventArgs e)
-        {
-            Assert.ArgumentNotNull(e, "e");
-
-            base.OnLoad(e);
-
-            if (Context.ClientPage.IsEvent)
-            {
-                return;
-            }
-
-            DataContext.GetFromQueryString();
-
-            RenderDevices();
-
-        }
-
-        /// <summary>
-        /// Renders the devices.
-        /// </summary>
-        void RenderDevices()
-        {
-            ListString selected = new ListString(Registry.GetValue("/Current_User/DeviceEditor/CopyDevices/TargetDevices"));
-
-            Item devices = Client.GetItemNotNull(ItemIDs.DevicesRoot);
-
-            HtmlTextWriter output = new HtmlTextWriter(new StringWriter());
-
-            foreach (Item device in devices.Children)
-            {
-                string id = "de_" + device.ID.ToShortID();
-
-                output.Write("<div style=\"padding:2px\">");
-                output.Write("<input type=\"checkbox\" id=\"" + id + "\" name=\"" + id + "\"");
-
-                if (selected.Contains(device.ID.ToString()))
-                {
-                    output.Write(" checked=\"checked\"");
-                }
-
-                output.Write(" />");
-                output.Write("<label for=\"" + id + "\">");
-                output.Write(device.DisplayName);
-                output.Write("</label>");
-                output.Write("</div>");
-            }
-
-            Devices.InnerHtml = output.InnerWriter.ToString();
-        }
-
-        /// <summary>
-        /// Handles a click on the OK button.
-        /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="args"></param>
-        /// <remarks>When the user clicks OK, the dialog is closed by calling
-        /// the <see cref="Sitecore.Web.UI.Sheer.ClientResponse.CloseWindow">CloseWindow</see> method.</remarks>
-        protected override void OnOK(object sender, EventArgs args)
-        {
-            Assert.ArgumentNotNull(sender, "sender");
-            Assert.ArgumentNotNull(args, "args");
-
-            Item item = Treeview.GetSelectionItem();
-
-            if (item == null)
-            {
-                SheerResponse.Alert(Texts.PLEASE_SELECT_AN_ITEM);
-            }
-
-            if (item == null)
-            {
-                SheerResponse.Alert(Texts.THE_TARGET_ITEM_COULD_NOT_BE_FOUND);
-                return;
-            }
-
-            ListString devices = new ListString();
-
-            foreach (string key in HttpContext.Current.Request.Form.Keys)
-            {
-                if (string.IsNullOrEmpty(key))
-                {
-                    continue;
-                }
-
-                if (key.StartsWith("de_", StringComparison.InvariantCulture))
-                {
-                    devices.Add(ShortID.Decode(StringUtil.Mid(key, 3)));
-                }
-            }
-
-            if (devices.Count == 0)
-            {
-                SheerResponse.Alert("Please select one or more devices.");
-                return;
-            }
-
-            Registry.SetValue("/Current_User/DeviceEditor/CopyDevices/TargetDevices", devices.ToString());
-
-            SheerResponse.SetDialogValue(devices + "^" + item.ID);
-
-            base.OnOK(sender, args);
-        }
-
-        #endregion
-
-        #region Private methods
-
-        /// <summary>
-        /// Gets the current item.
-        /// </summary>
-        /// <param name="message">The message.</param>
-        /// <returns></returns>
-        [CanBeNull]
-        Item GetCurrentItem(Message message)
-        {
-            Assert.ArgumentNotNull(message, "message");
-
-            string id = message["id"];
-
-            Item folder = DataContext.GetFolder();
-
+            string str = message["id"];
+            Item folder = this.DataContext.GetFolder();
             Language language = Context.Language;
             if (folder != null)
             {
                 language = folder.Language;
             }
-
-            if (!string.IsNullOrEmpty(id))
+            if (!string.IsNullOrEmpty(str))
             {
-                return Client.ContentDatabase.GetItem(id, language);
+                return Client.ContentDatabase.GetItem(str, language);
             }
-
             return folder;
         }
 
-        #endregion
+        public override void HandleMessage(Message message)
+        {
+            Assert.ArgumentNotNull(message, "message");
+            Dispatcher.Dispatch(message, this.GetCurrentItem(message));
+            base.HandleMessage(message);
+        }
+
+        protected override void OnLoad(EventArgs e)
+        {
+            Assert.ArgumentNotNull(e, "e");
+            base.OnLoad(e);
+            if (!Context.ClientPage.IsEvent)
+            {
+                this.DataContext.GetFromQueryString();
+                this.RenderDevices();
+            }
+        }
+
+        protected override void OnOK(object sender, EventArgs args)
+        {
+            Assert.ArgumentNotNull(sender, "sender");
+            Assert.ArgumentNotNull(args, "args");
+            Item selectionItem = this.Treeview.GetSelectionItem();
+            if (selectionItem == null)
+            {
+                SheerResponse.Alert("Select an item.", new string[0]);
+            }
+            if (selectionItem == null)
+            {
+                SheerResponse.Alert("The target item could not be found.", new string[0]);
+            }
+            else
+            {
+                ListString str = new ListString();
+                foreach (string str2 in HttpContext.Current.Request.Form.Keys)
+                {
+                    if (!string.IsNullOrEmpty(str2) && str2.StartsWith("de_", StringComparison.InvariantCulture))
+                    {
+                        str.Add(ShortID.Decode(StringUtil.Mid(str2, 3)));
+                    }
+                }
+                if (str.Count == 0)
+                {
+                    SheerResponse.Alert("Please select one or more devices.", new string[0]);
+                }
+                else
+                {
+                    Registry.SetValue("/Current_User/DeviceEditor/CopyDevices/TargetDevices", str.ToString());
+                    SheerResponse.SetDialogValue(str + "^" + selectionItem.ID);
+                    base.OnOK(sender, args);
+                }
+            }
+        }
+
+        private void RenderDevices()
+        {
+            ListString str = new ListString(Registry.GetValue("/Current_User/DeviceEditor/CopyDevices/TargetDevices"));
+            Item itemNotNull = Client.GetItemNotNull(ItemIDs.DevicesRoot);
+            HtmlTextWriter writer = new HtmlTextWriter(new StringWriter());
+            foreach (Item item2 in itemNotNull.Children)
+            {
+                string str2 = "de_" + item2.ID.ToShortID();
+                writer.Write("<div style=\"padding:2px\">");
+                writer.Write("<input type=\"checkbox\" id=\"" + str2 + "\" name=\"" + str2 + "\"");
+                if (str.Contains(item2.ID.ToString()))
+                {
+                    writer.Write(" checked=\"checked\"");
+                }
+                writer.Write(" />");
+                writer.Write("<label for=\"" + str2 + "\">");
+                writer.Write(item2.DisplayName);
+                writer.Write("</label>");
+                writer.Write("</div>");
+            }
+            this.Devices.InnerHtml = writer.InnerWriter.ToString();
+        }
     }
 }
