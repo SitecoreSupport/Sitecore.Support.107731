@@ -30,6 +30,7 @@ namespace Sitecore.Support.Shell.Applications.ContentManager.Dialogs.LayoutDetai
     using Version = Sitecore.Data.Version;
     using Sitecore.Shell.Applications.Layouts.DeviceEditor;
     using Sitecore.Shell.Web.UI;
+    using Xml.Patch;
 
     #endregion Usings
 
@@ -130,30 +131,27 @@ namespace Sitecore.Support.Shell.Applications.ContentManager.Dialogs.LayoutDetai
             get
             {
                 string layoutDelta = this.LayoutDelta;
-                if (!string.IsNullOrWhiteSpace(layoutDelta))
+                if (string.IsNullOrWhiteSpace(layoutDelta))
                 {
-                    if (string.IsNullOrWhiteSpace(this.Layout))
-                    {
-                        return layoutDelta;
-                    }
-
+                    return this.Layout;
+                }
+                if (XmlPatchUtils.IsXmlPatch(layoutDelta))
+                {
                     return XmlDeltas.ApplyDelta(this.Layout, layoutDelta);
                 }
-
-                return this.Layout;
+                return layoutDelta;
             }
-
             set
             {
                 Assert.ArgumentNotNull(value, "value");
-
                 if (!string.IsNullOrWhiteSpace(this.Layout))
                 {
-                    this.LayoutDelta = XmlUtil.XmlStringsAreEqual(this.Layout, value) ? null : XmlDeltas.GetDelta(value, this.Layout);
-                    return;
+                    this.LayoutDelta = XmlDeltas.GetDelta(value, this.Layout);
                 }
-
-                this.LayoutDelta = value;
+                else
+                {
+                    this.LayoutDelta = value;
+                }
             }
         }
 
