@@ -1,41 +1,35 @@
-﻿namespace Sitecore.Support.Shell.Applications.ContentManager.Dialogs.LayoutDetails
+﻿// --------------------------------------------------------------------------------------------------------------------
+// <copyright file="LayoutDetails.form.cs" company="Sitecore A/S">
+//   Copyright (c) Sitecore A/S. All rights reserved.
+// </copyright>
+// <summary>
+//   Represents a gallery layout form.
+// </summary>
+// --------------------------------------------------------------------------------------------------------------------
+
+namespace Sitecore.Support.Shell.Applications.ContentManager.Dialogs.LayoutDetails
 {
-
-    // --------------------------------------------------------------------------------------------------------------------
-    // <copyright file="LayoutDetails.form.cs" company="Sitecore A/S">
-    //   Copyright (c) Sitecore A/S. All rights reserved.
-    // </copyright>
-    // <summary>
-    //   Represents a gallery layout form.
-    // </summary>
-    // --------------------------------------------------------------------------------------------------------------------
-
-
     #region Usings
 
     using System;
     using System.Collections.Specialized;
     using System.Xml;
     using Diagnostics;
-    using Layouts.DeviceEditor;
     using Sitecore.Data.Fields;
     using Sitecore.Data.Items;
     using Sitecore.Globalization;
     using Sitecore.Layouts;
     using Sitecore.Shell.Applications.Dialogs;
     using Sitecore.Shell.Applications.Dialogs.LayoutDetails;
-    using Sitecore.Shell.Applications.Layouts.DeviceEditor;
-    using Sitecore.Shell.Framework;
-    using Sitecore.Shell.Web.UI;
     using Sitecore.Web;
     using Sitecore.Web.UI.HtmlControls;
     using Sitecore.Web.UI.Pages;
     using Sitecore.Web.UI.Sheer;
-    using Sitecore.Xml.Patch;
     using Text;
-    using Web.UI;
     using Xml;
     using Version = Sitecore.Data.Version;
+    using Sitecore.Shell.Applications.Layouts.DeviceEditor;
+    using Sitecore.Shell.Web.UI;
 
     #endregion Usings
 
@@ -241,7 +235,7 @@
             if (message.Name == "item:addversion")
             {
                 var currentItem = GetCurrentItem();
-                Dispatcher.Dispatch(message, currentItem);
+                Sitecore.Shell.Framework.Dispatcher.Dispatch(message, currentItem);
             }
             else
             {
@@ -278,18 +272,8 @@
             {
                 if (!string.IsNullOrEmpty(args.Result) && args.Result != "undefined")
                 {
-                    //string[] parts = args.Result.Split('^');
-                    //string sourceDevice = StringUtil.GetString(args.Parameters["deviceid"]);
-
-                    #region Added Code
-
-                    char[] separator = new char[] { '^' };
-                    string[] parts = args.Result.Split(separator);
-                    string[] values = new string[] { args.Parameters["deviceid"] };
-                    string sourceDevice = StringUtil.GetString(values);
-
-                    #endregion
-
+                    string[] parts = args.Result.Split('^');
+                    string sourceDevice = StringUtil.GetString(args.Parameters["deviceid"]);
                     var targetDevices = new ListString(parts[0]);
                     string targetItemId = parts[1];
                     XmlDocument doc = this.GetDoc();
@@ -306,15 +290,9 @@
                     {
                         if (deviceNode != null)
                         {
-                            //Item targetItem = Client.GetItemNotNull(targetItemId);
-                            //CopyDevice(deviceNode, targetDevices, targetItem);
-
-                            #region Added Code
-
-                            Sitecore.Data.Items.Item targetItem = Client.GetItemNotNull(targetItemId, Language.Parse(WebUtil.GetQueryString("la")), Sitecore.Data.Version.Parse(WebUtil.GetQueryString("vs")));
-                            this.CopyDevice(deviceNode, targetDevices, targetItem);
-
-                            #endregion
+                            Item targetItem = Client.GetItemNotNull(targetItemId, Language.Parse(WebUtil.GetQueryString("la")),
+                                Sitecore.Data.Version.Parse(WebUtil.GetQueryString("vs")));
+                            CopyDevice(deviceNode, targetDevices, targetItem);
                         }
                     }
 
@@ -324,21 +302,11 @@
             else
             {
                 XmlDocument doc = this.GetDoc();
-                //WebUtil.SetSessionValue("SC_DEVICEEDITOR", doc.OuterXml);
-                //var url = new UrlString(UIUtil.GetUri("control:CopyDeviceTo"));
-                //url["de"] = StringUtil.GetString(args.Parameters["deviceid"]);
-                //url["fo"] = WebUtil.GetQueryString("id");
-                //SheerResponse.ShowModalDialog(url.ToString(), "1200px", "700px", string.Empty, true);
-
-                #region Added Code
-
-                UrlString str4 = new UrlString(UIUtil.GetUri("control:CopyDeviceTo"));
+                WebUtil.SetSessionValue("SC_DEVICEEDITOR", doc.OuterXml);
+                UrlString url = new UrlString(UIUtil.GetUri("control:CopyDeviceTo"));
                 string[] textArray2 = new string[] { args.Parameters["deviceid"] };
-                str4["de"] = StringUtil.GetString(textArray2);
-                SheerResponse.ShowModalDialog(str4.ToString(), "1200px", "700px", string.Empty, true);
-               
-                #endregion
-
+                url["de"] = StringUtil.GetString(textArray2);
+                SheerResponse.ShowModalDialog(url.ToString(), "1200px", "700px", string.Empty, true);
                 args.WaitForPostBack();
             }
         }
@@ -496,24 +464,25 @@
         protected void EditRenderingPipeline([NotNull] ClientPipelineArgs args)
         {
             Assert.ArgumentNotNull(args, "args");
-
-            var options = new RenderingParameters();
-            options.Args = args;
-            options.DeviceId = StringUtil.GetString(args.Parameters["deviceid"]);
-            options.SelectedIndex = MainUtil.GetInt(StringUtil.GetString(args.Parameters["index"]), 0);
-            options.Item = UIUtil.GetItemFromQueryString(Client.ContentDatabase);
-
+            RenderingParameters parameters = new RenderingParameters
+            {
+                Args = args
+            };
+            string[] values = new string[] { args.Parameters["deviceid"] };
+            parameters.DeviceId = StringUtil.GetString(values);
+            string[] textArray2 = new string[] { args.Parameters["index"] };
+            parameters.SelectedIndex = MainUtil.GetInt(StringUtil.GetString(textArray2), 0);
+            parameters.Item = UIUtil.GetItemFromQueryString(Client.ContentDatabase);
             if (!args.IsPostBack)
             {
                 XmlDocument doc = this.GetDoc();
                 WebUtil.SetSessionValue("SC_DEVICEEDITOR", doc.OuterXml);
             }
-
-            if (options.Show())
+            if (parameters.Show())
             {
-                XmlDocument doc = XmlUtil.LoadXml(WebUtil.GetSessionString("SC_DEVICEEDITOR"));
+                XmlDocument document2 = XmlUtil.LoadXml(WebUtil.GetSessionString("SC_DEVICEEDITOR"));
                 WebUtil.SetSessionValue("SC_DEVICEEDITOR", null);
-                this.SetActiveLayout(GetLayoutValue(doc));
+                this.SetActiveLayout(GetLayoutValue(document2));
                 this.Refresh();
             }
         }
@@ -728,26 +697,20 @@
             Assert.ArgumentNotNull(doc, "doc");
             Assert.ArgumentNotNull(devices, "devices");
             Assert.ArgumentNotNull(sourceDevice, "sourceDevice");
-
             XmlNode node = doc.ImportNode(sourceDevice, true);
-
-            foreach (string deviceId in devices)
+            foreach (string str in devices)
             {
-                if (doc.DocumentElement == null)
+                if (doc.DocumentElement != null)
                 {
-                    continue;
+                    XmlNode node2 = doc.DocumentElement.SelectSingleNode("d[@id='" + str + "']");
+                    if (node2 != null)
+                    {
+                        XmlUtil.RemoveNode(node2);
+                    }
+                    node2 = node.CloneNode(true);
+                    XmlUtil.SetAttribute("id", str, node2);
+                    doc.DocumentElement.AppendChild(node2);
                 }
-
-                XmlNode device = doc.DocumentElement.SelectSingleNode("d[@id='" + deviceId + "']");
-
-                if (device != null)
-                {
-                    XmlUtil.RemoveNode(device);
-                }
-
-                device = node.CloneNode(true);
-                XmlUtil.SetAttribute("id", deviceId, device);
-                doc.DocumentElement.AppendChild(device);
             }
         }
 
